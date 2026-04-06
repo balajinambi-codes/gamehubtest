@@ -38,7 +38,7 @@ const GenreList = ({
     <Box
       bg="#020617"
       color="white"
-      h="100%"
+      h="calc(100vh - 80px)" 
       p={collapsed ? 2 : 5}
       w="100%"
       transition="all 0.3s ease"
