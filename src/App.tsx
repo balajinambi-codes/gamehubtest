@@ -1,16 +1,30 @@
-import { Box, Flex, Grid, GridItem, HStack, Show } from "@chakra-ui/react";
+import {
+  Box,
+  Flex,
+  Grid,
+  GridItem,
+  Show,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  useDisclosure,
+  IconButton,
+} from "@chakra-ui/react";
+import { HamburgerIcon } from "@chakra-ui/icons";
 import { useState } from "react";
+
 import GameGrid from "./components/GameGrid";
 import GameHeading from "./components/GameHeading";
 import GenreList from "./components/GenreList";
 import NavBar from "./components/NavBar";
 import PlatformSelector from "./components/PlatformSelector";
 import SortSelector from "./components/SortSelector";
+
 import { Platform } from "./hooks/useGames";
 import { Genre } from "./hooks/useGenres";
 
-
-export interface GameQuery { 
+export interface GameQuery {
   genre: Genre | null;
   platform: Platform | null;
   sortOrder: string;
@@ -19,39 +33,105 @@ export interface GameQuery {
 
 function App() {
   const [gameQuery, setGameQuery] = useState<GameQuery>({} as GameQuery);
-  
+
+  // 🔥 Sidebar states
+  const [collapsed, setCollapsed] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
   return (
-    <Grid
-      templateAreas={{
-        base: `"nav" "main"`,
-        lg: `"nav nav" "aside main"`,
-      }}
-      templateColumns={{
-        base: '1fr',
-        lg: '250px 1fr'
-      }}
-    >
-      <GridItem area="nav">
-        <NavBar onSearch={(searchText) => setGameQuery({ ...gameQuery, searchText })} />
-      </GridItem>
-      <Show above="lg">
-        <GridItem area="aside" paddingX={5}>
-          <GenreList selectedGenre={gameQuery.genre} onSelectGenre={(genre) => setGameQuery({ ...gameQuery, genre})} />
-        </GridItem>
+    <>
+      {/* 📱 Mobile Drawer Trigger (only mobile) */}
+      <Show below="lg">
+        <IconButton
+          icon={<HamburgerIcon />}
+          aria-label="Open Menu"
+          position="fixed"
+          top="15px"
+          left="15px"
+          zIndex={1000}
+          onClick={onOpen}
+        />
       </Show>
-      <GridItem area="main">
-        <Box paddingLeft={2}>
-          <GameHeading gameQuery={gameQuery} />
-          <Flex marginBottom={5}>
-            <Box marginRight={5}>
-              <PlatformSelector selectedPlatform={gameQuery.platform} onSelectPlatform={(platform) => setGameQuery({ ...gameQuery, platform}) } />
-            </Box>
-            <SortSelector sortOrder={gameQuery.sortOrder} onSelectSortOrder={(sortOrder) => setGameQuery({ ...gameQuery, sortOrder })} />
-          </Flex>
-        </Box>
-        <GameGrid gameQuery={gameQuery} />
-      </GridItem>
-    </Grid>
+
+      {/* 📱 Mobile Drawer */}
+      <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
+        <DrawerOverlay />
+        <DrawerContent bg="#020617">
+          <DrawerCloseButton />
+          <Box mt={10} p={3}>
+            <GenreList
+              collapsed={false}
+              selectedGenre={gameQuery.genre}
+              onSelectGenre={(genre) => {
+                setGameQuery({ ...gameQuery, genre });
+                onClose();
+              }}
+            />
+          </Box>
+        </DrawerContent>
+      </Drawer>
+
+      {/* 💻 Desktop Layout */}
+      <Grid
+        templateAreas={{
+          base: `"nav" "main"`,
+          lg: `"nav nav" "aside main"`,
+        }}
+        templateColumns={{
+          base: "1fr",
+          lg: `${collapsed ? "80px" : "250px"} 1fr`,
+        }}
+        transition="0.3s"
+      >
+        {/* ✅ Navbar (NOW CONTROLS SIDEBAR) */}
+        <GridItem area="nav">
+          <NavBar
+            onSearch={(searchText) =>
+              setGameQuery({ ...gameQuery, searchText })
+            }
+            onToggleSidebar={() => setCollapsed(!collapsed)} // 🔥 IMPORTANT
+          />
+        </GridItem>
+
+        {/* Sidebar */}
+        <Show above="lg">
+          <GridItem area="aside">
+            <GenreList
+              collapsed={collapsed}
+              selectedGenre={gameQuery.genre}
+              onSelectGenre={(genre) =>
+                setGameQuery({ ...gameQuery, genre })
+              }
+            />
+          </GridItem>
+        </Show>
+
+        {/* Main Content */}
+        <GridItem area="main">
+          <Box pl={{ base: 2, lg: 4 }} transition="0.3s">
+            <GameHeading gameQuery={gameQuery} />
+
+            <Flex mb={5} wrap="wrap" gap={3}>
+              <PlatformSelector
+                selectedPlatform={gameQuery.platform}
+                onSelectPlatform={(platform) =>
+                  setGameQuery({ ...gameQuery, platform })
+                }
+              />
+
+              <SortSelector
+                sortOrder={gameQuery.sortOrder}
+                onSelectSortOrder={(sortOrder) =>
+                  setGameQuery({ ...gameQuery, sortOrder })
+                }
+              />
+            </Flex>
+
+            <GameGrid gameQuery={gameQuery} />
+          </Box>
+        </GridItem>
+      </Grid>
+    </>
   );
 }
 
